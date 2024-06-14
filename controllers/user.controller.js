@@ -1,5 +1,6 @@
 import { status } from '../helpers/status.js';
 import User from '../model/user.model.js'
+import { createError } from '../utils/createError.js';
 
 
 export const deleteUser = async (req, res) => {
@@ -12,6 +13,6 @@ export const deleteUser = async (req, res) => {
         res.json({ msg: "User deleted successfully! "})
         
     } catch (error) {
-        
+        next(createError(status.error, error))
     }
 };

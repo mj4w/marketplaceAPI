@@ -1,6 +1,7 @@
 import Jwt from "jsonwebtoken";
 import { status, successMessage, errorMessage } from "./status.js";
 import environment from "../env.js";
+import bcrypt from "bcrypt";
 
 export const signAccessToken = (userId) => {
     return new Promise((resolve, reject) => {
@@ -80,3 +81,43 @@ export const verifyRefreshToken = (refreshToken) => {
         })
     })
 }
+
+
+export const generateResetToken = (email) => {
+    return new Promise((resolve, reject) => {
+        Jwt.sign(
+            { email },
+            environment.reset_token,
+            { expiresIn: '1h' },
+            (error, token) => {
+                if (error) {
+                    reject(error);
+                } else {
+                    resolve(token);
+                }
+            }
+        );
+    });
+};
+
+export const decodedToken = (token) => {
+    return new Promise((resolve, reject) => {
+        Jwt.verify(token, environment.reset_token, (error, decoded) => {
+            if (error) {
+                reject(error);
+            } else {
+                resolve(decoded);
+            }
+        });
+    });
+};
+
+export const hashedPassword = async (password) => {
+    try {
+        const salt = await bcrypt.genSalt(10);
+        const hashed = await bcrypt.hash(password, salt);
+        return hashed;
+    } catch (error) {
+        throw error;
+    }
+};

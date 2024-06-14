@@ -1,7 +1,23 @@
-import { signAccessToken, signRefreshToken, verifyRefreshToken } from "../helpers/jwt_helpers.js";
-import { status, successMessage, errorMessage } from "../helpers/status.js";
-import { loginSchema, registrationSchema } from "../helpers/validation.js";
+import { 
+    decodedToken,
+    generateResetToken, 
+    hashedPassword, 
+    signAccessToken, 
+    signRefreshToken, 
+    verifyRefreshToken 
+} from "../helpers/jwt_helpers.js";
+import { sendResetEmail } from "../helpers/sendResetEmail.js";
+import { 
+    status, 
+    successMessage, 
+    errorMessage 
+} from "../helpers/status.js";
+import { 
+    loginSchema, 
+    registrationSchema 
+} from "../helpers/validation.js";
 import User from '../model/user.model.js';
+import { createError } from '../utils/createError.js';
 
 export const register = async(req,res,next) => {
     try {
@@ -40,11 +56,11 @@ export const register = async(req,res,next) => {
             refreshToken 
         });
     } catch (error) {
-        next(error)
+        next(createError(status.error, error))
     }
 }
 
-export const login = async(req,res) => {
+export const login = async(req,res,next) => {
     try {
         const result = await loginSchema.validateAsync(req.body)
         const user = await User.findOne({ email: result.email })
@@ -73,7 +89,7 @@ export const login = async(req,res) => {
         })
 
     } catch (error) {
-        next(error)
+        next(createError(status.error, error))
     }
 }
 
@@ -85,6 +101,72 @@ export const logout = async(req,res) => {
         await verifyRefreshToken(refreshToken)
         res.status(status.success).json({ response: "Logout successfully"})
     } catch (error) {
-        next(error)
+        next(createError(status.error, error))
     }
 }
+
+
+export const forgotPassword = async (req, res) => {
+    const { email } = req.body;
+
+    try {
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return res.status(404).json({ msg: "User not found" });
+        }
+
+        // Generate reset token
+        const resetToken = await generateResetToken(user.email);
+        user.resetToken = resetToken;
+        user.resetTokenExpiration = Date.now() + 3600000 // 1hour
+        await user.save();
+
+        // send email with reset token
+        sendResetEmail(user.email, resetToken);
+
+        console.log("Reset Token:", resetToken);
+
+        res.json({ msg: "Reset token sent to your email" });
+    } catch (error) {
+        console.error(error.message);
+        next(createError(status.error, error))
+    }
+};
+
+export const resetPassword = async (req, res, next) => {
+    const { token } = req.params;
+    const { newPassword } = req.body;
+
+    try {
+        // Verify and decode the token
+        const decoded = await decodedToken(token);
+
+        // Find user by email from decoded token
+        const user = await User.findOne({ email: decoded.email });
+
+        if (!user) {
+            return res.status(404).json({ msg: "User not found" });
+        }
+
+        // Check if token has expired
+        if (Date.now() > user.resetTokenExpiration) {
+            return res.status(403).json({ msg: "Token Expired. Please request a new password reset." });
+        }
+        // saving fields
+        user.password = newPassword;
+        user.resetToken = undefined;
+        user.resetTokenExpiration = undefined;
+
+        console.log(user.password)
+        // Save the updated user
+        await user.save();
+        console.log(user);
+        // Respond with success message
+        res.status(200).json({ msg: "Password Reset Successful" });
+
+    } catch (error) {
+        console.error(error.message);
+        next(createError(500, error));
+    }
+};

@@ -37,25 +37,37 @@ const UserSchema = new Schema({
         type: Boolean,
         default: false,
     },
+    // reset password
+    resetToken: {
+        type: String,
+    },
+    resetTokenExpiration: {
+        type: Date,
+    },
+
 }, { timestamps: true })
 
-UserSchema.pre('save', async function(next){
-    try {
-        const salt = await bcrypt.genSalt(10)
-        const hashedPassword = await bcrypt.hash(this.password, salt)
-        this.password = hashedPassword
-        next()
-    } catch (error) {
-        next(error)
+UserSchema.pre('save', async function(next) {
+    if (!this.isModified('password')) {
+        return next();
     }
-})
-
-UserSchema.methods.isValidPassword = async function(password){
+    
     try {
-        return await bcrypt.compare(password, this.password)
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(this.password, salt);
+        this.password = hashedPassword;
+        next();
     } catch (error) {
-        throw(error)
+        next(error);
     }
-}
+});
 
-export default mongoose.model('User', UserSchema)
+UserSchema.methods.isValidPassword = async function(password) {
+    try {
+        return await bcrypt.compare(password, this.password);
+    } catch (error) {
+        throw(error);
+    }
+};
+
+export default mongoose.model('User', UserSchema);
