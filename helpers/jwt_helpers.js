@@ -45,21 +45,31 @@ export const signRefreshToken = (userId) => {
     })
 }
 
-export const verifyAccessToken = (req,res,next) => {
-    if (!req.headers['authorization']) return next(status.unauthorized)
-    const authHeader = req.headers['authorization']
-    const bearerTOken = authHeader.split(' ')
-    const token = bearerTOken[1]
-    Jwt.verify(token, environment.access_token, (error,payload) => {
-        if (error){
-            // const message = error.name === "JsonWebTokenError" ? "Unauthorizzed" : error.message
-            return next(status.unauthorized)
-        }
-        req.payload = payload
-        next()
-    })
+export const verifyAccessToken = (req, res, next) => {
+    // Check if Authorization header exists
+    if (!req.headers['authorization']) {
+        return res.status(status.unauthorized).json({ msg: "Not authorized" });
+    }
 
-}
+    const authHeader = req.headers['authorization'];
+    const bearerToken = authHeader.split(' ')[1];
+    
+    // Verify the token
+    Jwt.verify(bearerToken, environment.access_token, (error, payload) => {
+        if (error) {
+            return res.status(status.unauthorized).json({ msg: "Not authorized" });
+        }
+
+        const tokenFromCookie = req.cookies.accessToken; 
+        if (bearerToken !== tokenFromCookie) {
+            return res.status(status.unauthorized).json({ msg: "Cant delete this user" });
+        }
+
+        req.payload = payload;
+        next();
+    });
+};
+
 export const verifyRefreshToken = (refreshToken) => {
     return new Promise( (resolve, reject) => {
         const secret = environment.refresh_token
@@ -70,4 +80,3 @@ export const verifyRefreshToken = (refreshToken) => {
         })
     })
 }
-

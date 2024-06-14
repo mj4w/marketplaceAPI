@@ -22,11 +22,7 @@ export const register = async(req,res,next) => {
 
         // create user
         const newUser = new User({ 
-            username: result.username,
-            email: result.email, 
-            password: result.password,
-            country: result.country,
-            phone: result.phone
+            ...result
         });
         const savedUser = await newUser.save();
 
@@ -35,11 +31,16 @@ export const register = async(req,res,next) => {
         const refreshToken = await signRefreshToken(savedUser.id)
 
         // no password include
-        const { password: _, ...noPasswordInclude} = user._doc;
+        const { password: _, ...info} = savedUser._doc;
 
-        res.status(status.created).json({ msg: "Registered successfully!", response: noPasswordInclude, accessToken, refreshToken });
+        res.status(status.created).json({ 
+            msg: "Registered successfully!", 
+            response: info, 
+            accessToken, 
+            refreshToken 
+        });
     } catch (error) {
-        res.status(status.error).json(error.message)
+        next(error)
     }
 }
 
@@ -47,33 +48,43 @@ export const login = async(req,res) => {
     try {
         const result = await loginSchema.validateAsync(req.body)
         const user = await User.findOne({ email: result.email })
-        if (!user) throw res.status(status.notfound).json({ msg: "Email Not Registered "})
+        if (!user) return res.status(status.notfound).json({ msg: "Email Not Registered "})
 
         const isMatch = await user.isValidPassword(result.password);
-        if (!isMatch) throw res.status(status.unauthorized).json({ msg: "Email or Password is Incorrect"})
+        if (!isMatch) return res.status(status.unauthorized).json({ msg: "Email or Password is Incorrect"})
 
         const accessToken = await signAccessToken(user.id)
         const refreshToken = await signRefreshToken(user.id)
 
         // not include password in response 
-        const { password: _, ...noPasswordInclude} = user._doc;
+        const { password: _, ...info} = user._doc;
 
 
-        res.status(status.success).json({ response: noPasswordInclude, accessToken, refreshToken })
+        res
+        .cookie("accessToken", accessToken, {
+            httpOnly: true,
+        })
+        .status(status.success)
+        .json({
+            msg: "Login Successfully", 
+            response: info, 
+            accessToken, 
+            refreshToken
+        })
 
     } catch (error) {
-        res.status(status.error).json({ msg: error.message})
+        next(error)
     }
 }
 
 export const logout = async(req,res) => {
     try {
         const { refreshToken } = req.body
-        if (!refreshToken) throw res.status(status.bad).json({ msg: "Refresh token is required"})
+        if (!refreshToken) return res.status(status.bad).json({ msg: "Refresh token is required"})
         // verify refresh token
         await verifyRefreshToken(refreshToken)
         res.status(status.success).json({ response: "Logout successfully"})
     } catch (error) {
-        res.status(status.error).json(error.message)
+        next(error)
     }
 }

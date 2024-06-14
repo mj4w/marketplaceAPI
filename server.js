@@ -11,12 +11,15 @@ import orderRoutes from './routes/order.route.js';
 import messageRoutes from './routes/message.route.js';
 import gigRoutes from './routes/gig.route.js';
 import conversationRoutes from './routes/conversation.route.js';
+import cookieParser from 'cookie-parser'
+import { status } from './helpers/status.js'
 
 const app = express()
 
 // middleware
 app.use(morgan('dev'))
 app.use(express.json())
+app.use(cookieParser())
 
 // routes
 app.use('/api/auth', authRoutes)
@@ -26,6 +29,11 @@ app.use('api/order', orderRoutes)
 app.use('/api/message', messageRoutes);
 app.use('/api/gig/', gigRoutes),
 app.use('/api/conversation', conversationRoutes)
+
+app.use((err,req,res,next) => {
+    const errorMessage = err.message || "Something went wrong!";
+    return res.status(status.error).send(errorMessage)
+})
 
 // route not found
 app.use(notFound)
