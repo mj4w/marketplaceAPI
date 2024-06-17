@@ -10,7 +10,7 @@ export const registrationSchema = Joi.object({
     img: Joi.string().optional(),
     country: Joi.string().required(),
     phone: Joi.number().required(),
-    desc: Joi.string().optional(),
+    desc: Joi.string().allow('').optional(),
     isSeller: Joi.boolean().optional()
 });
 

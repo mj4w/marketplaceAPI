@@ -1,12 +1,13 @@
 import { Router } from "express";
-import { homeGig } from "../controllers/gig.controller.js";
-import { verifyAccessToken } from "../helpers/jwt_helpers.js";
+import { createGig, deleteGig, getAllGig, getGig, updateGig } from "../controllers/gig.controller.js";
+import { verifyAccessToken, verifyRefreshToken } from "../helpers/jwt_helpers.js";
 
 const router = Router();
 
-router.get('/home',verifyAccessToken,homeGig)
-// router.post('/')
-// router.put('/')
-// router.delete('/')
+router.post('/create',verifyAccessToken, createGig)
+router.get('/', getAllGig)
+router.get('/single/:id', getGig)
+router.delete('/:id', verifyAccessToken, deleteGig)
+router.put('/:id', verifyAccessToken, updateGig)
 
 export default router

@@ -21,7 +21,7 @@ import { createError } from '../utils/createError.js';
 
 export const register = async(req,res,next) => {
     try {
-        console.log(req.body)
+        // console.log(req.body)
         const result = await registrationSchema.validateAsync(req.body);
 
         // does exist
@@ -43,7 +43,7 @@ export const register = async(req,res,next) => {
         const savedUser = await newUser.save();
 
         // Generate Tokens
-        const accessToken = await signAccessToken(savedUser.id)
+        const accessToken = await signAccessToken(savedUser)
         const refreshToken = await signRefreshToken(savedUser.id)
 
         // no password include
@@ -55,26 +55,29 @@ export const register = async(req,res,next) => {
             accessToken, 
             refreshToken 
         });
+
     } catch (error) {
         next(createError(status.error, error))
+
     }
 }
 
 export const login = async(req,res,next) => {
     try {
         const result = await loginSchema.validateAsync(req.body)
+    
         const user = await User.findOne({ email: result.email })
         if (!user) return res.status(status.notfound).json({ msg: "Email Not Registered "})
 
         const isMatch = await user.isValidPassword(result.password);
         if (!isMatch) return res.status(status.unauthorized).json({ msg: "Email or Password is Incorrect"})
 
-        const accessToken = await signAccessToken(user.id)
+        const accessToken = await signAccessToken(user)
         const refreshToken = await signRefreshToken(user.id)
+
 
         // not include password in response 
         const { password: _, ...info} = user._doc;
-
 
         res
         .cookie("accessToken", accessToken, {
@@ -83,9 +86,11 @@ export const login = async(req,res,next) => {
         .status(status.success)
         .json({
             msg: "Login Successfully", 
-            response: info, 
-            accessToken, 
-            refreshToken
+            response: {
+                ...info, 
+                accessToken, 
+                refreshToken
+            }
         })
 
     } catch (error) {
@@ -99,10 +104,23 @@ export const logout = async(req,res) => {
         if (!refreshToken) return res.status(status.bad).json({ msg: "Refresh token is required"})
         // verify refresh token
         await verifyRefreshToken(refreshToken)
-        res.status(status.success).json({ response: "Logout successfully"})
+        res.clearCookie("accessToken", {
+            secure: true,
+            sameSite: "none",
+        }).status(status.success).json({ response: "User has been logged out"})
     } catch (error) {
         next(createError(status.error, error))
     }
+}
+
+export const logoutv2 = async(req,res) => {
+    res
+    .clearCookie("accessToken", {
+        sameSite: "none",
+        secure: true,
+    })
+    .status(status.success)
+    .json({ response: "User has been logged out" })
 }
 
 

@@ -13,6 +13,7 @@ import gigRoutes from './routes/gig.route.js';
 import conversationRoutes from './routes/conversation.route.js';
 import cookieParser from 'cookie-parser'
 import { status } from './helpers/status.js'
+import cors from 'cors'
 
 const app = express()
 
@@ -20,6 +21,11 @@ const app = express()
 app.use(morgan('dev'))
 app.use(express.json())
 app.use(cookieParser())
+app.use(cors({
+    origin: 'http://localhost:5173',
+    credentials: true,
+    optionsSuccessStatus: 200,
+}))
 
 // routes
 app.use('/api/auth', authRoutes)
@@ -27,7 +33,7 @@ app.use('/api/users', userRoutes)
 app.use('/api/review', reviewRoutes)
 app.use('api/order', orderRoutes)
 app.use('/api/message', messageRoutes);
-app.use('/api/gig/', gigRoutes),
+app.use('/api/gigs/', gigRoutes),
 app.use('/api/conversation', conversationRoutes)
 
 app.use((err,req,res,next) => {

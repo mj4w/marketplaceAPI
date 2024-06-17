@@ -2,18 +2,23 @@ import Jwt from "jsonwebtoken";
 import { status, successMessage, errorMessage } from "./status.js";
 import environment from "../env.js";
 import bcrypt from "bcrypt";
+import { createError } from "../utils/createError.js";
+import User from '../model/user.model.js'
 
-export const signAccessToken = (userId) => {
+export const signAccessToken = (user) => {
     return new Promise((resolve, reject) => {
         const payload = {
-            // TODO
-            // iss: "website.com"
+            // isSeller: user.isSeller,
+            id: user.id,
+            isSeller: user.isSeller,
+            username: user.username,
+            email: user.email
+
         }
         const secret = environment.access_token
         const options = {
             expiresIn: "1d",
-            // issuer: "website.com",
-            audience: userId,
+            audience: user.id,
         }
         Jwt.sign(payload, secret, options, (error, token) => {
             if (error){
@@ -46,30 +51,42 @@ export const signRefreshToken = (userId) => {
     })
 }
 
-export const verifyAccessToken = (req, res, next) => {
-    // Check if Authorization header exists
-    if (!req.headers['authorization']) {
-        return res.status(status.unauthorized).json({ msg: "Not authorized" });
-    }
-
-    const authHeader = req.headers['authorization'];
-    const bearerToken = authHeader.split(' ')[1];
-    
-    // Verify the token
-    Jwt.verify(bearerToken, environment.access_token, (error, payload) => {
+export const verifyAccessToken = async (req, res, next) => {
+    try {
+      // Check if Authorization header exists
+      const authHeader = req.headers['authorization'];
+      if (!authHeader) {
+        return res.status(status.unauthorized).json({ msg: "No Authorization header" });
+      }
+  
+      const bearerToken = authHeader.split(' ')[1];
+      if (!bearerToken) {
+        return res.status(status.unauthorized).json({ msg: "Invalid Authorization header format" });
+      }
+  
+      // Verify the token
+      Jwt.verify(bearerToken, environment.access_token, async (error, payload) => {
         if (error) {
-            return res.status(status.unauthorized).json({ msg: "Not authorized" });
+          return res.status(status.unauthorized).json({ msg: "Token verification failed" });
         }
-
+  
         const tokenFromCookie = req.cookies.accessToken; 
         if (bearerToken !== tokenFromCookie) {
-            return res.status(status.unauthorized).json({ msg: "Cant delete this user" });
+          return res.status(status.unauthorized).json({ msg: "Token mismatch" });
         }
 
-        req.payload = payload;
+        // Add user information to request
+        req.userId = payload.id
+        req.isSeller = payload.isSeller
+        req.username = payload.username,
+        req.email = payload.email
+        console.log(payload)
         next();
-    });
-};
+      });
+    } catch (error) {
+      next(createError(status.INTERNAL_SERVER_ERROR, error.message));
+    }
+  };
 
 export const verifyRefreshToken = (refreshToken) => {
     return new Promise( (resolve, reject) => {

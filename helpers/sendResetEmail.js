@@ -25,9 +25,7 @@ export const sendResetEmail = (email,resetToken) => {
     transporter.sendMail(mailOptions, (error, info) => {
         if (error) {
             console.log(error);
-            return res.status(status.error).json({ msg: "Failed to send email" });
         }
         console.log('Email sent: ' + info.response);
-        res.json({ msg: 'Email sent with password reset instructions' });
     });
 }
