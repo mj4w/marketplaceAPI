@@ -20,8 +20,24 @@ export const createGig = async (req, res, next) => {
 };
 
 export const getAllGig = async (req,res,next) => {
+    
+    const q = req.query;
+    const filters = {
+        // $options: "i" to take the lowercase or upper case
+        ...(q.userId && { userId: q.userId }),
+        ...(q.category && { category: { $regex: q.category, $options: "i" } }),
+        ...((q.min || q.max) && {
+            price: {
+                ...(q.min && { $gte: q.min }),  // $gte for minimum price
+                ...(q.max && { $lte: q.max })   // $lte for maximum price
+            }
+        }),
+        ...(q.search && { title: { $regex: q.search, $options: "i" } })
+    };
+    
+
     try {
-        const gig = await Gig.find({})
+        const gig = await Gig.find(filters) 
 
         if (!gig) {
             return next(createError(status.notfound, "Gig not found"))
