@@ -34,10 +34,9 @@ export const getAllGig = async (req,res,next) => {
         }),
         ...(q.search && { title: { $regex: q.search, $options: "i" } })
     };
-    
 
     try {
-        const gig = await Gig.find(filters) 
+        const gig = await Gig.find(filters).sort({ [q.sort] : -1 })
 
         if (!gig) {
             return next(createError(status.notfound, "Gig not found"))
@@ -56,7 +55,7 @@ export const getGig = async (req,res,next) => {
             return next(createError(status.notfound, "Gig not found"))
         }
 
-        res.status(status.success).json({ response: gig})
+        res.status(status.success).json(gig)
         
     } catch (error) {
         next(createError(status.error, error.message))

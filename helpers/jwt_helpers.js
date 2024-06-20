@@ -80,11 +80,11 @@ export const verifyAccessToken = async (req, res, next) => {
         req.isSeller = payload.isSeller
         req.username = payload.username,
         req.email = payload.email
-        console.log(payload)
+        // console.log(payload)
         next();
       });
     } catch (error) {
-      next(createError(status.INTERNAL_SERVER_ERROR, error.message));
+      next(createError(status.error, error.message));
     }
   };
 

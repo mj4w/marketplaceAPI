@@ -31,7 +31,7 @@ app.use(cors({
 app.use('/api/auth', authRoutes)
 app.use('/api/users', userRoutes)
 app.use('/api/review', reviewRoutes)
-app.use('api/order', orderRoutes)
+app.use('/api/order', orderRoutes)
 app.use('/api/message', messageRoutes);
 app.use('/api/gigs/', gigRoutes),
 app.use('/api/conversation', conversationRoutes)
