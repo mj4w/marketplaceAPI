@@ -35,3 +35,15 @@ export const getOrders = async (req,res,next) => {
         next(error)
     }
 }
+
+export const deleteOrder = async(req,res,next) => {
+    try {
+        const orders = await Order.findById(req.params.id)
+        if (orders.buyerId !== req.userId) return next(createOrder(status.unauthorized, "You cant delete this order"));
+
+        await Order.findByIdAndDelete(req.params.id)
+        res.status(status.success).json("Order deleted successfully")
+    } catch (error) {
+        next(error)
+    }
+}
